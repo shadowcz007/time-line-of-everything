@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <meta http-equiv="Cache-Control" content="no-siteapp">
+
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <meta name="apple-mobile-web-app-title" content="苹果这些年">
+
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            background: #eee;
+        }
+
+        .time {
+            font-size: 44px;
+            font-weight: 300;
+            font-family: monospace;
+
+            color: #494552;
+            margin: 0;
+        }
+
+        .bold_title_header {
+            font-size: 3em;
+            color: #494552;
+            padding-left: 0.6em;
+            font-weight: 800;
+            padding-bottom: 0;
+
+            margin-top: 44px;
+            margin-bottom: 0;
+        }
+
+        .info_header {
+            font-size: 0.8em;
+    color: #494552;
+    padding-left: 2.4em;
+    font-weight: 300;
+    padding-bottom: 0;
+    margin-top: 8px;
+        }
+        .info_container{
+            margin-bottom: 44px;
+        }
+
+        .bold_title {
+            font-size: 24px;
+            color: #494552;
+            padding-left: 1.2em;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .content {
+            padding: 1em;
+            color: #23222d;
+            font-size: 0.9em;
+            font-weight: 400;
+            line-height: 2em;
+        }
+
+        .other {
+            color: #b8b9c3;
+            font-weight: 300;
+        }
+
+        .keyword {
+            outline: 1px dashed #59416b;
+            /* display: flex; */
+            text-align: center;
+            padding: 4px;
+            margin: 12px 0;
+            background: #f7f1fd;
+
+        }
+
+        .keyword_other{
+            outline: 1px dashed #6b6841;
+            background: #fdfaf1;
+        }
+
+        .link {
+            display: flex;
+            flex-direction: column;
+            padding: 1em;
+            font-size: 0.8em;
+            color: #7c768e91;
+            line-height: 28px;
+        }
+
+        .tag {
+            font-size: 12px;
+            font-weight: 300;
+            background: #bdadd2ad;
+            /*position: relative;
+                top: -12px;
+                */
+            width: 44px;
+            text-align: center;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            margin-bottom: 12px;
+            padding: 18px;
+        }
+    </style>
+
+
+</head>
+
+<body contenteditable="true">
+
+    <script>
+
+        //const from='apple.json';
+        const from='youwaerhelali.json';
+
+        init();
+
+        async function init() {
+            var _list = await getJson(from);
+            window._list = _list;
+            let div = document.createDocumentFragment();
+
+            let titleDiv = document.createElement('div');
+            titleDiv.innerHTML = `<h3 class="bold_title_header ">${_list.title}</h3>`;
+            div.appendChild(titleDiv);
+
+            let info = getSum(_list);
+
+            let infoDiv = document.createElement('div');
+            infoDiv.innerHTML = `<div class="info_container"><div class="info_header ">长达${info.maxTime}年的时间线</div>
+            <div class="info_header ">事件多发：${info.maxWhen.join('、')}年</div>
+            <div class="info_header ">主要人员：${info.maxWho.join('、')}</div>
+            <div class="info_header ">密集坐标：${info.maxWhere.join('、')}</div>
+            <div class="info_header ">机构/公司：${info.maxOrganization.join('、')}</div>
+            <div class="info_header ">数据量：${info.maxLink}篇文章</div>
+            </div>
+            `;
+            div.appendChild(infoDiv);
+
+
+            for (let index = 0; index < _list.data.length; index++) {
+                const li = _list.data[index];
+                let liDiv = document.createElement('div');
+                liDiv.className = 'card';
+                let html = `<h4 class="time">${li.when}</h4>
+            ${li.who ? `<h4 class="bold_title">${li.who}<div class="tag">人物</div></h4>` : ''}
+            ${li.where ? `<h4 class="bold_title">${li.where}<div class="tag">地点</div></h4>` : ''}
+            ${li.organization ? `<h4 class="bold_title">${li.organization}<div class="tag">机构</div></h4>` : ''}
+            ${li.phrase.replace(/\[|\]/ig, '') ? `<div class="keyword">${li.phrase.replace(/\[|\]/ig, '')}</div>` :`<div class="keyword keyword_other">xxx</div>`}
+            <h5 class="content"><span class="other">……${li.before}</span>${li.text}<span class="other" >${li.after}……</span></h5>
+            <a href="${li.link}" class="link"><div class="tag">原文</div><!--<div>${li.title}</div><div>${li.publishAt.replace(/T.*/ig, '')}</div>--></a>
+            `;
+                liDiv.innerHTML = html;
+                div.appendChild(liDiv);
+            }
+
+            document.body.appendChild(div);
+
+        };
+
+
+        async function getJson(_url) {
+            return new Promise(function (resolve, reject) {
+                fetch(_url).then(response => response.json())
+                    .then(data => resolve(data))
+                    .catch(err => reject(err))
+            });
+        };
+
+
+        function getSum(_list) {
+            let years = {},
+                persons = {},
+                locations = {},
+                organizations = {},
+                links={};
+            let maxLink=0;
+            let maxTime = _list.data[_list.data.length - 1].time - _list.data[0].time;
+
+            for (let index = 0; index < _list.data.length; index++) {
+                const li = _list.data[index];
+                if (!links[li.link]) {
+                    maxLink+=1;
+                };
+                updateObj(li.time, years);
+                updateObj(li.who, persons);
+                updateObj(li.where, locations);
+                updateObj(li.organization, organizations);
+
+            };
+
+            console.log(persons)
+
+            var result = {
+                maxTime: maxTime,
+                maxWhen: getMaxItem(years),
+                maxWhere: getMaxItem(locations),
+                maxWho: getMaxItem(persons),
+                maxOrganization: getMaxItem(organizations),
+                maxLink:maxLink
+            };
+
+            return result;
+
+        };
+
+
+        function getMaxItem(_obj) {
+            let max =[],
+                maxItems=[];
+            for (var item in _obj) {
+                
+                max.push(_obj[item]);
+                         
+            };
+
+            let n=Math.max.apply(null,max);
+            for (var item in _obj) {
+                
+                if (_obj[item]==n) {
+                    maxItems.push(item);
+                }
+                         
+            };
+
+            return maxItems
+        };
+
+        function updateObj(_val, _obj) {
+            //console.log(_val)
+            if (_val) {
+                var ws = isNumber(_val) ? [_val] : _val.split('、');
+                for (let j = 0; j < ws.length; j++) {
+                    var w = ws[j];
+                    if (_obj[w]) {
+                        _obj[w] += 1
+                    } else {
+                        _obj[w] = 1;
+                    }
+                }
+            };
+        };
+
+        function isNumber(obj) {
+            return obj === +obj
+        }
+
+    </script>
+
+</body>
+
+</html>
